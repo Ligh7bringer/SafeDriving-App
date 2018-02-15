@@ -2,6 +2,7 @@ package com.safe.sgeor.safedriving;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Location;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -10,11 +11,14 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -23,8 +27,14 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
+
+import java.util.ArrayList;
 
 public class MapFragment extends Fragment {
     public static final String TITLE = "Map";
@@ -33,6 +43,9 @@ public class MapFragment extends Fragment {
     private SupportMapFragment supportMapFragment;
     //fused location... to get locations
     private FusedLocationProviderClient fusedLocationProviderClient;
+    //stuff needed to draw route
+    private ArrayList<LatLng> points; //added
+    Polyline line; //added
 
     public static MapFragment newInstance() {
         return new MapFragment();
@@ -45,6 +58,7 @@ public class MapFragment extends Fragment {
         View parent = inflater.inflate(R.layout.fragment_map, container, false);
 
         //initialise
+        points = new ArrayList<LatLng>();
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(getActivity());
         //get map fragment
         supportMapFragment = (SupportMapFragment) getChildFragmentManager().findFragmentById(R.id.mapwhere);
@@ -75,13 +89,17 @@ public class MapFragment extends Fragment {
                             @Override
                             public void onComplete(@NonNull Task<Location> task) {
                                 if (task.isSuccessful() && task.getResult() != null) {
-                                    CameraPosition cameraPosition = new CameraPosition.Builder().target(new LatLng(task.getResult().getLatitude(), task.getResult().getLongitude())).zoom(15.0f).build();
+                                    LatLng currentPos = new LatLng(task.getResult().getLatitude(), task.getResult().getLongitude());
+                                    CameraPosition cameraPosition = new CameraPosition.Builder().target(currentPos).zoom(15.0f).build();
                                     CameraUpdate cameraUpdate = CameraUpdateFactory.newCameraPosition(cameraPosition);
+                                    googleMap.addMarker(new MarkerOptions().title("You are here").position(currentPos));
                                     googleMap.moveCamera(cameraUpdate);
+
+                                    points.add(currentPos);
+                                    redrawLine(googleMap);
                                 }
                             }
                         });
-
                     }
                 }
             });
@@ -90,5 +108,16 @@ public class MapFragment extends Fragment {
         return parent;
     }
 
+    private void redrawLine(GoogleMap googleMap){
+        googleMap.clear();  //clears all Markers and Polylines
+
+        PolylineOptions options = new PolylineOptions().width(5).color(Color.BLUE).geodesic(true);
+        for (int i = 0; i < points.size(); i++) {
+            LatLng point = points.get(i);
+            options.add(point);
+        }
+        //googleMap.addMarker(new ); //add Marker in current position
+        line = googleMap.addPolyline(options); //add Polyline
+    }
 
 }

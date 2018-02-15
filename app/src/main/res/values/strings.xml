@@ -2,4 +2,6 @@
     <string name="app_name">SafeDriving</string>
     <string name="text_home">Home</string>
     <string name="text_map">Map</string>
+    <string name="metrics">Use metric units?</string>
+    <string name="speed">miles/hour</string>
 </resources>
